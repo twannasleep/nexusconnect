@@ -12,16 +12,16 @@ import { StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { WagmiProvider } from "wagmi";
 import App from "./App";
-import { defaultSolanaChains } from "./config/chains";
+import { defaultSolanaChains, defaultEVMChains } from "./config/chains";
 import { wagmiConfig } from "./config/wagmi";
+import { WalletProvider } from "./core/providers/WalletProvider";
 import "./index.css";
-import { WalletProvider } from "./providers/WalletProvider";
 
 // Import Solana wallet styles
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 function Root() {
-  const wallets = useMemo(
+  const solanaWallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     [],
   );
@@ -37,9 +37,37 @@ function Root() {
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={wagmiConfig}>
           <ConnectionProvider endpoint={solanaEndpoint}>
-            <SolanaWalletProvider autoConnect wallets={wallets}>
+            <SolanaWalletProvider wallets={solanaWallets}>
               <WalletModalProvider>
-                <WalletProvider>
+                <WalletProvider
+                  chains={[...defaultEVMChains, ...defaultSolanaChains]}
+                  wallets={[
+                    {
+                      id: "metamask",
+                      name: "MetaMask",
+                      icon: "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg",
+                      supportedChainTypes: ["evm"],
+                    },
+                    {
+                      id: "walletconnect",
+                      name: "WalletConnect",
+                      icon: "https://avatars.githubusercontent.com/u/37784886",
+                      supportedChainTypes: ["evm"],
+                    },
+                    {
+                      id: "phantom",
+                      name: "Phantom",
+                      icon: "https://avatars.githubusercontent.com/u/78782331",
+                      supportedChainTypes: ["solana"],
+                    },
+                    {
+                      id: "solflare",
+                      name: "Solflare",
+                      icon: "https://avatars.githubusercontent.com/u/71836411",
+                      supportedChainTypes: ["solana"],
+                    },
+                  ]}
+                >
                   <App />
                 </WalletProvider>
               </WalletModalProvider>
