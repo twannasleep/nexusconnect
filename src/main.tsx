@@ -46,7 +46,7 @@ function Root() {
       <QueryClientProvider client={queryClient}>
         <WagmiProvider config={config}>
           <ConnectionProvider endpoint={solanaEndpoint}>
-            <SolanaWalletProvider wallets={wallets}>
+            <SolanaWalletProvider autoConnect wallets={wallets}>
               <WalletModalProvider>
                 <WalletProvider>
                   <App />

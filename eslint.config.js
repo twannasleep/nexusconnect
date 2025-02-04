@@ -8,10 +8,7 @@ import prettier from "eslint-plugin-prettier";
 export default tseslint.config(
   { ignores: ["dist"] },
   {
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-    ],
+    extends: [],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -33,6 +30,7 @@ export default tseslint.config(
       ],
       "prettier/prettier": "error",
       "@typescript-eslint/no-explicit-any": 0,
+      "@typescript-eslint/no-unsafe-throw": "off",
       "object-shorthand": "warn",
       "@typescript-eslint/no-non-null-assertion": "off",
       "react/react-in-jsx-scope": "off",

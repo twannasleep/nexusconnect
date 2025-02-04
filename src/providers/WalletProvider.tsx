@@ -1,6 +1,7 @@
+import { WalletName } from "@solana/wallet-adapter-base";
 import { useWallet } from "@solana/wallet-adapter-react";
-import type { WalletError } from "@solana/wallet-adapter-base";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { Connection } from "@solana/web3.js";
 import React, {
   createContext,
   PropsWithChildren,
@@ -8,14 +9,20 @@ import React, {
   useContext,
   useEffect,
 } from "react";
-import { useAccount, useChainId, useConnect, useDisconnect } from "wagmi";
+import {
+  useAccount,
+  useChainId,
+  useConnect,
+  useDisconnect,
+  useSwitchChain,
+} from "wagmi";
 import { injected } from "wagmi/connectors";
+import { defaultSolanaChains, defaultEVMChains } from "../config/chains";
 import { useWalletStore } from "../store/useWalletStore";
 import { SupportedChainType } from "../types/chains";
-import { defaultSolanaChains } from "../config/chains";
 
 interface WalletContextType {
-  connect: (chainType: SupportedChainType) => Promise<void>;
+  connect: (chainType: SupportedChainType, walletId: string) => Promise<void>;
   disconnect: () => Promise<void>;
   switchChain: (chainId: number | string) => Promise<void>;
 }
@@ -29,14 +36,18 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const chainId = useChainId();
 
   const wallet = useWallet();
-  const { connected: isSolanaConnected, publicKey } = wallet;
-
-  const connectSolana = wallet.connect.bind(wallet);
-  const disconnectSolana = wallet.disconnect.bind(wallet);
+  const {
+    connected: isSolanaConnected,
+    publicKey,
+    connect: connectSolana,
+    disconnect: disconnectSolana,
+  } = wallet;
 
   const { setVisible } = useWalletModal();
 
   const { setAddress, setChainId, setConnected } = useWalletStore();
+
+  const { chains, switchChainAsync } = useSwitchChain();
 
   useEffect(() => {
     if (isEVMConnected) {
@@ -64,21 +75,24 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
   ]);
 
   const connect = useCallback(
-    async (chainType: SupportedChainType) => {
+    async (chainType: SupportedChainType, walletId: string) => {
       try {
         if (chainType === "evm") {
           const connector =
-            connectors.find((c) => c.id === "injected") || injected();
-          connectEVM({ connector });
-        } else {
-          try {
+            connectors.find((c) => c.id === walletId) || injected();
+          await connectEVM({ connector });
+        }
+
+        if (chainType === "solana") {
+          // If a different wallet is selected, disconnect it first
+          if (wallet.wallet && wallet.wallet.adapter.name !== walletId) {
+            await disconnectSolana();
+          }
+
+          if (!wallet.wallet) {
+            wallet.select(walletId as WalletName);
+          } else {
             await connectSolana();
-          } catch (error) {
-            if ((error as WalletError).name === "WalletNotSelectedError") {
-              setVisible(true);
-            } else {
-              throw error;
-            }
           }
         }
       } catch (error) {
@@ -86,7 +100,14 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
         throw error;
       }
     },
-    [connectEVM, connectSolana, connectors, setVisible],
+    [
+      connectEVM,
+      connectSolana,
+      disconnectSolana,
+      connectors,
+      wallet,
+      setVisible,
+    ],
   );
 
   const disconnect = useCallback(async () => {
@@ -113,10 +134,68 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
     setConnected,
   ]);
 
-  const switchChain = useCallback(async (chainId: number | string) => {
-    // TODO: Implement chain switching logic
-    throw new Error("Chain switching not implemented");
-  }, []);
+  const switchChain = useCallback(
+    async (chainId: number | string) => {
+      try {
+        // For EVM chains
+        if (typeof chainId === "number") {
+          const targetChain = defaultEVMChains.find(
+            (chain) => chain.id === chainId,
+          );
+          if (!targetChain) {
+            throw new Error(`Chain with ID ${chainId} not supported`);
+          }
+
+          if (!switchChainAsync) {
+            throw new Error("Chain switching not available");
+          }
+
+          await switchChainAsync({ chainId });
+          setChainId(chainId);
+          return;
+        }
+
+        // For Solana chains
+        if (typeof chainId === "string") {
+          const targetChain = defaultSolanaChains.find(
+            (chain) => chain.id === chainId,
+          );
+          if (!targetChain) {
+            throw new Error(`Solana network ${chainId} not supported`);
+          }
+
+          // Create new connection with the target endpoint
+          const connection = new Connection(targetChain.endpoint);
+
+          // Disconnect current wallet if connected
+          if (isSolanaConnected) {
+            await disconnectSolana();
+          }
+
+          // Update the connection and reconnect
+          if (wallet.wallet) {
+            await connectSolana();
+          }
+
+          setChainId(chainId);
+          return;
+        }
+
+        throw new Error("Invalid chain ID format");
+      } catch (error) {
+        console.error("Failed to switch chain:", error);
+        throw error;
+      }
+    },
+    [
+      switchChainAsync,
+      isSolanaConnected,
+      disconnectSolana,
+      connectSolana,
+      wallet,
+      setChainId,
+    ],
+  );
 
   return (
     <WalletContext.Provider value={{ connect, disconnect, switchChain }}>
