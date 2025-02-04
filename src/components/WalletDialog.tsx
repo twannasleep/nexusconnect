@@ -3,7 +3,11 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect, useState } from "react";
 import { supportedWallets } from "../config/wallets";
 import { useWalletContext } from "../providers/WalletProvider";
-import { SupportedChainType } from "../types/chains";
+import {
+  EVMChainConfig,
+  SolanaChainConfig,
+  SupportedChainType,
+} from "../types/chains";
 import type { Wallet } from "../types/wallets";
 import { DialogRoot } from "./Dialog";
 import { useWalletStore } from "../store/useWalletStore";
@@ -12,20 +16,31 @@ import { defaultEVMChains, defaultSolanaChains } from "../config/chains";
 interface WalletDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  pendingChain?: EVMChainConfig | SolanaChainConfig | null;
 }
 
-export function WalletDialog({ open, onOpenChange }: WalletDialogProps) {
+export function WalletDialog({
+  open,
+  onOpenChange,
+  pendingChain,
+}: WalletDialogProps) {
   const [selectedChainType, setSelectedChainType] =
     useState<SupportedChainType>("evm");
-  const { connect } = useWalletContext();
+  const { connect, switchChain } = useWalletContext();
   const { chainId } = useWalletStore();
 
-  // Set initial chain type based on selected chain
+  // Set initial chain type based on pending chain first, then current chain
   useEffect(() => {
+    if (pendingChain) {
+      const chainType = typeof pendingChain.id === "number" ? "evm" : "solana";
+      setSelectedChainType(chainType);
+      return;
+    }
+
     if (chainId) {
       // Check if it's a Solana chain
       const isSolanaChain = defaultSolanaChains.some(
-        (chain) => chain.id === chainId
+        (chain) => chain.id === chainId,
       );
       if (isSolanaChain) {
         setSelectedChainType("solana");
@@ -38,11 +53,17 @@ export function WalletDialog({ open, onOpenChange }: WalletDialogProps) {
         setSelectedChainType("evm");
       }
     }
-  }, [chainId]);
+  }, [chainId, pendingChain, open]); // Added 'open' to ensure it runs when dialog opens
 
   const handleConnect = async (walletId: string) => {
     try {
       await connect(selectedChainType, walletId);
+
+      // If there's a pending chain, switch to it after connecting
+      if (pendingChain) {
+        await switchChain(pendingChain.id);
+      }
+
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to connect wallet:", error);

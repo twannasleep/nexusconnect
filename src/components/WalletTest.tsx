@@ -2,15 +2,15 @@ import { useCallback, useState } from "react";
 import { useWalletContext } from "../providers/WalletProvider";
 import { useWalletStore } from "../store/useWalletStore";
 import { defaultEVMChains, defaultSolanaChains } from "../config/chains";
-import { WalletDialog } from "./WalletDialog";
 import { ChainSelector } from "./ChainSelector";
+import { useWalletDialogStore } from "../store/useWalletDialogStore";
 
 export const WalletTest = () => {
   const { disconnect } = useWalletContext();
   const { address, isConnected, chainId } = useWalletStore();
+  const { setIsOpen: setDialogOpen } = useWalletDialogStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleDisconnect = useCallback(async () => {
     try {
@@ -82,11 +82,13 @@ export const WalletTest = () => {
                 {getNetworkName(chainId)}
               </code>
             </p>
+            {isConnected && (
+              <div className="mt-2">
+                <ChainSelector />
+              </div>
+            )}
           </div>
         )}
-        <div className="mt-2">
-          <ChainSelector />
-        </div>
         {error && (
           <p
             className="mt-4 p-3 rounded bg-red-500/10 text-red-400"
@@ -103,7 +105,10 @@ export const WalletTest = () => {
         <div className="flex gap-4 flex-wrap">
           {!isConnected ? (
             <button
-              onClick={() => setDialogOpen(true)}
+              onClick={() => {
+                setDialogOpen(true);
+                setError(null);
+              }}
               disabled={isLoading}
               aria-label={isLoading ? "Connecting wallet..." : "Connect wallet"}
               className={`${buttonClassName} bg-indigo-500 hover:bg-indigo-600`}
@@ -124,14 +129,6 @@ export const WalletTest = () => {
           )}
         </div>
       </div>
-
-      <WalletDialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) setError(null);
-        }}
-      />
     </div>
   );
 };

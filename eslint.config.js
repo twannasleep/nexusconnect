@@ -8,7 +8,7 @@ import prettier from "eslint-plugin-prettier";
 export default tseslint.config(
   { ignores: ["dist"] },
   {
-    extends: [],
+    extends: [js.configs.recommended, "plugin:react/recommended"],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,

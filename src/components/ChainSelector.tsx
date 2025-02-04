@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { defaultEVMChains, defaultSolanaChains } from "../config/chains";
 import { useWalletContext } from "../providers/WalletProvider";
 import { useWalletStore } from "../store/useWalletStore";
+import { useWalletDialogStore } from "../store/useWalletDialogStore";
 import {
   EVMChainConfig,
   SolanaChainConfig,
@@ -26,10 +27,14 @@ const getChainDisplayInfo = (chain: ChainConfig) => {
 };
 
 export function ChainSelector() {
-  const { switchChain, connect, disconnect } = useWalletContext();
+  const { switchChain, disconnect } = useWalletContext();
   const { chainId: selectedChainId, isConnected } = useWalletStore();
   const [selectedChain, setSelectedChain] = useState<ChainConfig | null>(null);
-  const [pendingChain, setPendingChain] = useState<ChainConfig | null>(null);
+  const {
+    setIsOpen: setShowWalletDialog,
+    setPendingChain,
+    pendingChain,
+  } = useWalletDialogStore();
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -50,14 +55,10 @@ export function ChainSelector() {
   }, [selectedChainId]);
 
   const handleChainChange = async (newChain: ChainConfig) => {
-    // If not connected, switch directly
+    // If not connected, open wallet dialog with the selected chain type
     if (!isConnected) {
-      try {
-        await switchChain(newChain.id);
-        setSelectedChain(newChain);
-      } catch (error) {
-        console.error("Failed to switch chain:", error);
-      }
+      setPendingChain(newChain);
+      setShowWalletDialog(true);
       return;
     }
 
@@ -85,29 +86,19 @@ export function ChainSelector() {
 
     try {
       setIsLoading(true);
-      const newChainType = getChainType(pendingChain);
-
-      // First disconnect from the current chain
       await disconnect();
-
-      // Use the first available wallet for the chain type
-      const defaultWalletId = newChainType === "evm" ? "injected" : "phantom";
-
-      // Connect to the new chain type
-      await connect(newChainType, defaultWalletId);
-
-      // Switch to the specific chain
-      await switchChain(pendingChain.id);
-      setSelectedChain(pendingChain);
+      setShowConfirm(false);
+      setShowWalletDialog(true);
     } catch (error) {
       console.error("Failed to switch chain:", error);
+      setPendingChain(null);
     } finally {
       setIsLoading(false);
-      setPendingChain(null);
     }
-  }, [pendingChain, connect, disconnect, switchChain]);
+  }, [pendingChain, disconnect, setShowWalletDialog, setPendingChain]);
 
   const handleCancelSwitch = () => {
+    setShowConfirm(false);
     setPendingChain(null);
   };
 
@@ -244,10 +235,8 @@ export function ChainSelector() {
         open={showConfirm}
         onOpenChange={setShowConfirm}
         title="Switch Chain Type"
-        description={`You are about to switch from ${selectedChain?.name} to ${
-          pendingChain?.name
-        }. This will require disconnecting your current wallet and connecting a new one. Do you want to continue?`}
-        onConfirm={handleConfirmSwitch}
+        description={`You are about to switch from ${selectedChain?.name} to ${pendingChain?.name}. This will require disconnecting your current wallet and connecting a new one. Do you want to continue?`}
+        onConfirm={() => handleConfirmSwitch()}
         onCancel={handleCancelSwitch}
       />
     </>
