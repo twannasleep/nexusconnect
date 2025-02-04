@@ -1,26 +1,18 @@
-export interface ChainConfig {
+import { Chain } from "viem";
+
+export type SupportedChainType = "evm" | "solana";
+
+export type ChainConfig = Omit<Chain, "id"> & {
   id: number | string;
-  name: string;
-  network: string;
-  nativeCurrency: {
-    name: string;
-    symbol: string;
-    decimals: number;
-  };
-  rpcUrls: string[];
-  blockExplorers?: {
-    name: string;
-    url: string;
-  }[];
-  testnet?: boolean;
-}
+  type: SupportedChainType;
+};
 
 export interface EVMChainConfig extends ChainConfig {
   chainId: number;
 }
 
-export interface SolanaChainConfig extends ChainConfig {
+export interface SolanaChainConfig extends Omit<ChainConfig, "rpcUrls"> {
   endpoint: string;
 }
 
-export type SupportedChainType = "evm" | "solana";
+export type SupportedChain = EVMChainConfig | SolanaChainConfig;

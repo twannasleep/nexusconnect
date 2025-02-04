@@ -29,6 +29,14 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
+export const useWalletContext = () => {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error("useWalletContext must be used within a WalletProvider");
+  }
+  return context;
+};
+
 export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const { connect: connectEVM, connectors } = useConnect();
   const { disconnect: disconnectEVM } = useDisconnect();
@@ -56,7 +64,7 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
       setConnected(true);
     } else if (isSolanaConnected && publicKey) {
       setAddress(publicKey.toString());
-      setChainId(defaultSolanaChains[0].id);
+      setChainId(defaultSolanaChains[0]?.id ?? null);
       setConnected(true);
     } else {
       setAddress(null);
@@ -100,14 +108,7 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
         throw error;
       }
     },
-    [
-      connectEVM,
-      connectSolana,
-      disconnectSolana,
-      connectors,
-      wallet,
-      setVisible,
-    ],
+    [connectEVM, connectSolana, disconnectSolana, connectors, wallet],
   );
 
   const disconnect = useCallback(async () => {
@@ -202,12 +203,4 @@ export const WalletProvider: React.FC<PropsWithChildren> = ({ children }) => {
       {children}
     </WalletContext.Provider>
   );
-};
-
-export const useWalletContext = () => {
-  const context = useContext(WalletContext);
-  if (!context) {
-    throw new Error("useWalletContext must be used within a WalletProvider");
-  }
-  return context;
 };

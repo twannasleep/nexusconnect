@@ -1,6 +1,6 @@
 import { Listbox, Transition } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { defaultEVMChains, defaultSolanaChains } from "../config/chains";
 import { useWalletContext } from "../providers/WalletProvider";
 import { useWalletStore } from "../store/useWalletStore";
@@ -17,22 +17,37 @@ const getChainType = (chain: ChainConfig): SupportedChainType => {
   return typeof chain.id === "number" ? "evm" : "solana";
 };
 
+const getChainDisplayInfo = (chain: ChainConfig) => {
+  const type = getChainType(chain);
+  return {
+    name: chain.name,
+    subtitle: type === "evm" ? `Chain ID: ${chain.id}` : "Solana",
+  };
+};
+
 export function ChainSelector() {
   const { switchChain, connect, disconnect } = useWalletContext();
   const { chainId: selectedChainId, isConnected } = useWalletStore();
-  const [chains] = useState<ChainConfig[]>([
-    ...defaultEVMChains,
-    ...defaultSolanaChains,
-  ]);
   const [selectedChain, setSelectedChain] = useState<ChainConfig | null>(null);
   const [pendingChain, setPendingChain] = useState<ChainConfig | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Group chains by type
+  const chainGroups = useMemo(() => {
+    return {
+      evm: defaultEVMChains,
+      solana: defaultSolanaChains,
+    };
+  }, []);
+
   useEffect(() => {
-    const chain = chains.find((chain) => chain.id === selectedChainId) ?? null;
+    const chain =
+      [...defaultEVMChains, ...defaultSolanaChains].find(
+        (chain) => chain.id === selectedChainId,
+      ) ?? null;
     setSelectedChain(chain);
-  }, [selectedChainId, chains]);
+  }, [selectedChainId]);
 
   const handleChainChange = async (newChain: ChainConfig) => {
     // If not connected, switch directly
@@ -112,7 +127,7 @@ export function ChainSelector() {
                     {selectedChain.name}
                   </span>
                   <span className="ml-2 text-sm text-gray-400">
-                    {selectedChain.network}
+                    {getChainDisplayInfo(selectedChain).subtitle}
                   </span>
                 </span>
               ) : (
@@ -134,39 +149,91 @@ export function ChainSelector() {
               leaveTo="opacity-0"
             >
               <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-700 py-1 text-base shadow-lg ring-1 ring-black/5 focus:outline-none">
-                {chains.map((chain) => (
-                  <Listbox.Option
-                    key={chain.id.toString()}
-                    className={({ active }) =>
-                      `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
-                        active
-                          ? "bg-indigo-500/20 text-indigo-300"
-                          : "text-gray-100"
-                      }`
-                    }
-                    value={chain}
-                  >
-                    {({ selected }) => (
-                      <>
-                        <div className="flex items-center">
-                          <span
-                            className={`block truncate ${selected ? "font-medium" : "font-normal"}`}
-                          >
-                            {chain.name}
-                          </span>
-                          <span className="ml-2 text-sm text-gray-400">
-                            {chain.network}
-                          </span>
-                        </div>
-                        {selected ? (
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400">
-                            <Check className="h-5 w-5" aria-hidden="true" />
-                          </span>
-                        ) : null}
-                      </>
-                    )}
-                  </Listbox.Option>
-                ))}
+                {/* EVM Chains */}
+                <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-gray-600">
+                  EVM Chains
+                </div>
+                {chainGroups.evm.map((chain) => {
+                  const displayInfo = getChainDisplayInfo(chain);
+                  return (
+                    <Listbox.Option
+                      key={chain.id.toString()}
+                      className={({ active }) =>
+                        `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
+                          active
+                            ? "bg-indigo-500/20 text-indigo-300"
+                            : "text-gray-100"
+                        }`
+                      }
+                      value={chain}
+                    >
+                      {({ selected }) => (
+                        <>
+                          <div className="flex items-center">
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
+                              {displayInfo.name}
+                            </span>
+                            <span className="ml-2 text-sm text-gray-400">
+                              {displayInfo.subtitle}
+                            </span>
+                          </div>
+                          {selected ? (
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400">
+                              <Check className="h-5 w-5" aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </Listbox.Option>
+                  );
+                })}
+
+                {/* Solana Chains */}
+                <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-gray-600 mt-2">
+                  Solana Chains
+                </div>
+                {chainGroups.solana.map((chain) => {
+                  const displayInfo = getChainDisplayInfo(chain);
+                  return (
+                    <Listbox.Option
+                      key={chain.id.toString()}
+                      className={({ active }) =>
+                        `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
+                          active
+                            ? "bg-indigo-500/20 text-indigo-300"
+                            : "text-gray-100"
+                        }`
+                      }
+                      value={chain}
+                    >
+                      {({ selected }) => (
+                        <>
+                          <div className="flex items-center">
+                            <span
+                              className={`block truncate ${
+                                selected ? "font-medium" : "font-normal"
+                              }`}
+                            >
+                              {displayInfo.name}
+                            </span>
+                            <span className="ml-2 text-sm text-gray-400">
+                              {displayInfo.subtitle}
+                            </span>
+                          </div>
+                          {selected ? (
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-indigo-400">
+                              <Check className="h-5 w-5" aria-hidden="true" />
+                            </span>
+                          ) : null}
+                        </>
+                      )}
+                    </Listbox.Option>
+                  );
+                })}
               </Listbox.Options>
             </Transition>
           </div>
@@ -177,7 +244,9 @@ export function ChainSelector() {
         open={showConfirm}
         onOpenChange={setShowConfirm}
         title="Switch Chain Type"
-        description={`You are about to switch from ${selectedChain?.name} to ${pendingChain?.name}. This will require disconnecting your current wallet and connecting a new one. Do you want to continue?`}
+        description={`You are about to switch from ${selectedChain?.name} to ${
+          pendingChain?.name
+        }. This will require disconnecting your current wallet and connecting a new one. Do you want to continue?`}
         onConfirm={handleConfirmSwitch}
         onCancel={handleCancelSwitch}
       />

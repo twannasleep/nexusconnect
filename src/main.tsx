@@ -10,11 +10,10 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode, useMemo } from "react";
 import { createRoot } from "react-dom/client";
-import { WagmiProvider, createConfig, http } from "wagmi";
-import { mainnet } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
+import { WagmiProvider } from "wagmi";
 import App from "./App";
 import { defaultSolanaChains } from "./config/chains";
+import { wagmiConfig } from "./config/wagmi";
 import "./index.css";
 import { WalletProvider } from "./providers/WalletProvider";
 
@@ -27,14 +26,6 @@ function Root() {
     [],
   );
 
-  const config = createConfig({
-    chains: [mainnet],
-    connectors: [injected()],
-    transports: {
-      [mainnet.id]: http(),
-    },
-  });
-
   const queryClient = new QueryClient();
 
   // Use the first Solana chain's endpoint from config
@@ -44,7 +35,7 @@ function Root() {
   return (
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>
+        <WagmiProvider config={wagmiConfig}>
           <ConnectionProvider endpoint={solanaEndpoint}>
             <SolanaWalletProvider autoConnect wallets={wallets}>
               <WalletModalProvider>

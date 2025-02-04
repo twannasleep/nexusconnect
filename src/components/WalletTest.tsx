@@ -35,15 +35,13 @@ export const WalletTest = () => {
         (chain) => chain.id === chainId,
       );
       if (solanaChain) {
-        return `${solanaChain.name} ${solanaChain.network}`;
+        return `${solanaChain.name} (Solana)`;
       }
 
       // Check EVM chains
-      const evmChain = defaultEVMChains.find(
-        (chain) => chain.chainId === chainId,
-      );
+      const evmChain = defaultEVMChains.find((chain) => chain.id === chainId);
       if (evmChain) {
-        return `${evmChain.name} ${evmChain.network}`;
+        return `${evmChain.name} (Chain ID: ${chainId})`;
       }
 
       return `Chain ID: ${chainId}`;

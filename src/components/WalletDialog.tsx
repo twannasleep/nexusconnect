@@ -1,11 +1,13 @@
 import { Tab } from "@headlessui/react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supportedWallets } from "../config/wallets";
 import { useWalletContext } from "../providers/WalletProvider";
 import { SupportedChainType } from "../types/chains";
 import type { Wallet } from "../types/wallets";
 import { DialogRoot } from "./Dialog";
+import { useWalletStore } from "../store/useWalletStore";
+import { defaultEVMChains, defaultSolanaChains } from "../config/chains";
 
 interface WalletDialogProps {
   open: boolean;
@@ -16,6 +18,27 @@ export function WalletDialog({ open, onOpenChange }: WalletDialogProps) {
   const [selectedChainType, setSelectedChainType] =
     useState<SupportedChainType>("evm");
   const { connect } = useWalletContext();
+  const { chainId } = useWalletStore();
+
+  // Set initial chain type based on selected chain
+  useEffect(() => {
+    if (chainId) {
+      // Check if it's a Solana chain
+      const isSolanaChain = defaultSolanaChains.some(
+        (chain) => chain.id === chainId
+      );
+      if (isSolanaChain) {
+        setSelectedChainType("solana");
+        return;
+      }
+
+      // Check if it's an EVM chain
+      const isEVMChain = defaultEVMChains.some((chain) => chain.id === chainId);
+      if (isEVMChain) {
+        setSelectedChainType("evm");
+      }
+    }
+  }, [chainId]);
 
   const handleConnect = async (walletId: string) => {
     try {
