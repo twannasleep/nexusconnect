@@ -37,12 +37,12 @@ export const useWalletStore = create<WalletState>()(
       removeChain: (chainId: number | string) =>
         set((state) => ({
           supportedChains: state.supportedChains.filter(
-            (chain) => chain.id !== chainId
+            (chain) => chain.id !== chainId,
           ),
         })),
     })) as WalletStore,
     {
       name: "wallet-storage",
-    }
-  )
+    },
+  ),
 );

@@ -23,4 +23,4 @@ export interface SolanaChainConfig extends ChainConfig {
   endpoint: string;
 }
 
-export type SupportedChainType = 'evm' | 'solana'; 
+export type SupportedChainType = "evm" | "solana";

@@ -1,21 +1,21 @@
-import { EVMChainConfig, SolanaChainConfig } from '../types/chains';
+import { EVMChainConfig, SolanaChainConfig } from "../types/chains";
 
 export const defaultEVMChains: EVMChainConfig[] = [
   {
-    id: 1,
-    chainId: 1,
-    name: 'Ethereum',
-    network: 'mainnet',
+    id: 11155111,
+    chainId: 11155111,
+    name: "Ethereum",
+    network: "sepolia",
     nativeCurrency: {
-      name: 'Ether',
-      symbol: 'ETH',
+      name: "Sepolia Ether",
+      symbol: "ETH",
       decimals: 18,
     },
-    rpcUrls: ['https://ethereum.publicnode.com'],
+    rpcUrls: ["https://ethereum-sepolia.publicnode.com"],
     blockExplorers: [
       {
-        name: 'Etherscan',
-        url: 'https://etherscan.io',
+        name: "Etherscan",
+        url: "https://sepolia.etherscan.io",
       },
     ],
   },
@@ -24,16 +24,16 @@ export const defaultEVMChains: EVMChainConfig[] = [
 
 export const defaultSolanaChains: SolanaChainConfig[] = [
   {
-    id: 'solana-mainnet',
-    name: 'Solana',
-    network: 'mainnet-beta',
-    endpoint: 'https://api.mainnet-beta.solana.com',
+    id: "solana-devnet",
+    name: "Solana",
+    network: "devnet",
+    endpoint: "https://api.devnet.solana.com",
     nativeCurrency: {
-      name: 'SOL',
-      symbol: 'SOL',
+      name: "SOL",
+      symbol: "SOL",
       decimals: 9,
     },
-    rpcUrls: ['https://api.mainnet-beta.solana.com'],
+    rpcUrls: ["https://api.devnet.solana.com"],
   },
   // Add more Solana networks as needed
-]; 
+];
