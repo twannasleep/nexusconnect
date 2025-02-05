@@ -1,10 +1,8 @@
-import { useWalletDialogStore } from "./core/store/useWalletDialogStore";
 import { useWalletStore } from "./core/store/useWalletStore";
 import { ChainSelector, ConnectButton, WalletDialog } from "./ui/components";
 
 const App: React.FC = () => {
-  const { isOpen, openDialog, closeDialog, pendingChain } =
-    useWalletDialogStore();
+  const { isDialogOpen, toggleDialog, pendingChain } = useWalletStore();
   const { chain } = useWalletStore();
 
   return (
@@ -12,8 +10,10 @@ const App: React.FC = () => {
       <ChainSelector />
       <ConnectButton />
       <WalletDialog
-        open={isOpen}
-        onOpenChange={(open) => (open ? openDialog() : closeDialog())}
+        open={isDialogOpen}
+        onOpenChange={(open) =>
+          open ? toggleDialog(true) : toggleDialog(false)
+        }
         pendingChain={pendingChain || chain}
       />
     </main>

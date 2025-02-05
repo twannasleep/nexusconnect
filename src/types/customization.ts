@@ -1,6 +1,5 @@
 import { type ReactNode } from "react";
 import { type SupportedChain } from "./chains";
-import { type Wallet } from "./wallets";
 
 export interface CustomUIComponents {
   ConnectButton?: React.ComponentType<ConnectButtonProps>;

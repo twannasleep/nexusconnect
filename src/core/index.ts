@@ -4,7 +4,6 @@ export * from "./providers/WalletProvider";
 
 // State management
 export * from "./store/useWalletStore";
-export * from "./store/useWalletDialogStore";
 
 // Types
 export * from "../types/chains";

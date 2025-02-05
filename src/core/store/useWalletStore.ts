@@ -3,37 +3,55 @@ import { type SupportedChain } from "../../types/chains";
 import { type Wallet } from "../../types/wallets";
 
 interface WalletState {
+  // Connection state
   wallet: Wallet | null;
   chain: SupportedChain | null;
   isConnecting: boolean;
   isConnected: boolean;
   error: Error | null;
 
+  // Dialog state
+  isDialogOpen: boolean;
+  pendingChain: SupportedChain | null;
+
   // Actions
   setWallet: (wallet: Wallet | null) => void;
   setChain: (chain: SupportedChain | null) => void;
-  setIsConnecting: (isConnecting: boolean) => void;
-  setIsConnected: (isConnected: boolean) => void;
+  setConnectionState: (connecting: boolean, connected: boolean) => void;
   setError: (error: Error | null) => void;
+  setPendingChain: (chain: SupportedChain | null) => void;
+  toggleDialog: (open?: boolean) => void;
   reset: () => void;
 }
 
-const initialState = {
+export const useWalletStore = create<WalletState>((set) => ({
+  // Initial state
   wallet: null,
   chain: null,
   isConnecting: false,
   isConnected: false,
   error: null,
-};
-
-export const useWalletStore = create<WalletState>((set) => ({
-  ...initialState,
+  isDialogOpen: false,
+  pendingChain: null,
 
   // Actions
   setWallet: (wallet) => set({ wallet }),
   setChain: (chain) => set({ chain }),
-  setIsConnecting: (isConnecting) => set({ isConnecting }),
-  setIsConnected: (isConnected) => set({ isConnected }),
+  setConnectionState: (connecting, connected) =>
+    set({ isConnecting: connecting, isConnected: connected }),
   setError: (error) => set({ error }),
-  reset: () => set(initialState),
+  setPendingChain: (chain) => set({ pendingChain: chain }),
+  toggleDialog: (open) =>
+    set((state) => ({
+      isDialogOpen: open ?? !state.isDialogOpen,
+    })),
+  reset: () =>
+    set({
+      wallet: null,
+      chain: null,
+      isConnecting: false,
+      isConnected: false,
+      error: null,
+      pendingChain: null,
+    }),
 }));

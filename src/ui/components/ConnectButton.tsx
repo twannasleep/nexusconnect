@@ -1,6 +1,6 @@
+import { useWalletStore } from "@/core";
 import { type ReactNode, useState } from "react";
 import { useWallet } from "../../core/hooks/useWallet";
-import { useWalletDialogStore } from "../../core/store/useWalletDialogStore";
 
 export interface ConnectButtonProps {
   children?: ReactNode;
@@ -14,7 +14,7 @@ export function ConnectButton({
   disabled = false,
 }: ConnectButtonProps) {
   const { isConnected, disconnect } = useWallet();
-  const { openDialog } = useWalletDialogStore();
+  const { isDialogOpen, toggleDialog } = useWalletStore();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async () => {
@@ -25,7 +25,7 @@ export function ConnectButton({
       if (isConnected) {
         await disconnect();
       } else {
-        openDialog();
+        toggleDialog(true);
       }
     } catch (error) {
       console.error("Wallet action failed:", error);

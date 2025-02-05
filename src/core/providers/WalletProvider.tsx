@@ -1,9 +1,14 @@
+import { Wallet } from "@/types/wallets";
 import { type ReactNode, createContext, useContext, useMemo } from "react";
-import { type SupportedChain } from "../../types/chains";
-import { type Wallet } from "../../types/wallets";
+import {
+  type SupportedChain,
+  type SupportedChainType,
+} from "../../types/chains";
 import { type SDKConfig } from "../../types/customization";
+import { WalletAdapter } from "../adapters/BaseWalletAdapter";
 import { NexusConnect } from "../NexusConnect";
 import { validateChainConfig } from "../utils";
+import { defaultEVMChains } from "@/config/chains";
 
 interface WalletProviderProps {
   children: ReactNode;
@@ -12,11 +17,17 @@ interface WalletProviderProps {
   config?: Partial<SDKConfig>;
 }
 
-interface WalletContextValue {
+export interface WalletContextValue {
+  getAdapter: (chainType: SupportedChainType) => WalletAdapter;
   sdk: NexusConnect;
 }
 
-const WalletContext = createContext<WalletContextValue | null>(null);
+export const WalletContext = createContext<WalletContextValue>({
+  getAdapter: () => {
+    throw new Error("WalletContext not initialized");
+  },
+  sdk: new NexusConnect(defaultEVMChains, [], {}),
+});
 
 export function WalletProvider({
   children,
@@ -32,7 +43,13 @@ export function WalletProvider({
     [chains, wallets, config],
   );
 
-  const contextValue = useMemo(() => ({ sdk }), [sdk]);
+  const contextValue = useMemo(
+    () => ({
+      sdk,
+      getAdapter: (chainType: SupportedChainType) => sdk.getAdapter(chainType),
+    }),
+    [sdk],
+  );
 
   return (
     <WalletContext.Provider value={contextValue}>

@@ -1,15 +1,8 @@
 import { useCallback, useMemo } from "react";
-import {
-  type SupportedChain,
-  isEVMChain,
-  isSolanaChain,
-} from "../../types/chains";
+import { type SupportedChain } from "../../types/chains";
 import { type Wallet } from "../../types/wallets";
 import { useWalletStore } from "../store/useWalletStore";
-import { useWalletDialogStore } from "../store/useWalletDialogStore";
-import { EVMWalletAdapter } from "../adapters/EVMWalletAdapter";
-import { SolanaWalletAdapter } from "../adapters/SolanaWalletAdapter";
-import { type WalletAdapter } from "../adapters/BaseWalletAdapter";
+import { useWalletContext } from "../providers/WalletProvider";
 
 export interface UseWalletReturn {
   wallet: Wallet | null;
@@ -19,141 +12,83 @@ export interface UseWalletReturn {
   error: Error | null;
   connect: (wallet: Wallet) => Promise<void>;
   disconnect: () => Promise<void>;
-  openWalletDialog: () => void;
-  closeWalletDialog: () => void;
   switchChain: (chain: SupportedChain) => Promise<void>;
 }
 
 export function useWallet(): UseWalletReturn {
-  const {
-    wallet,
-    chain,
-    isConnecting,
-    isConnected,
-    error,
-    setWallet,
-    setChain,
-    setIsConnecting,
-    setIsConnected,
-    setError,
-  } = useWalletStore();
-
-  const { openDialog, closeDialog } = useWalletDialogStore();
-
-  // Create wallet adapter based on chain type
-  const getWalletAdapter = useCallback(
-    (chain: SupportedChain): WalletAdapter => {
-      if (isEVMChain(chain)) {
-        return new EVMWalletAdapter();
-      }
-      if (isSolanaChain(chain)) {
-        return new SolanaWalletAdapter();
-      }
-      // Exhaustive type check
-      const _exhaustiveCheck: never = chain;
-      throw new Error(`Unsupported chain type`);
-    },
-    [],
-  );
+  const store = useWalletStore();
+  const sdk = useWalletContext();
 
   const connect = useCallback(
-    async (selectedWallet: Wallet) => {
-      if (!chain) {
-        throw new Error("No chain selected");
-      }
+    async (wallet: Wallet) => {
+      if (!store.chain) throw new Error("No chain selected");
 
       try {
-        setIsConnecting(true);
-        setError(null);
+        store.setConnectionState(true, false);
+        store.setError(null);
 
-        const adapter = getWalletAdapter(chain);
-        await adapter.connect(selectedWallet, chain);
+        const adapter = sdk.getAdapter(store.chain.type);
+        await adapter.connect(wallet, store.chain);
 
-        setWallet(selectedWallet);
-        setIsConnected(true);
+        store.setWallet(wallet);
+        store.setConnectionState(false, true);
       } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error("Failed to connect wallet"),
-        );
-        throw err;
-      } finally {
-        setIsConnecting(false);
+        const error =
+          err instanceof Error ? err : new Error("Connection failed");
+        store.setError(error);
+        throw error;
       }
     },
-    [
-      chain,
-      setWallet,
-      setIsConnecting,
-      setIsConnected,
-      setError,
-      getWalletAdapter,
-    ],
+    [store.chain],
   );
 
   const disconnect = useCallback(async () => {
-    if (!chain || !wallet) return;
+    if (!store.chain || !store.wallet) return;
 
     try {
-      const adapter = getWalletAdapter(chain);
+      const adapter = sdk.getAdapter(store.chain.type);
       await adapter.disconnect();
 
-      setWallet(null);
-      setIsConnected(false);
-      setError(null);
+      store.setWallet(null);
+      store.setConnectionState(false, false);
+      store.setError(null);
     } catch (err) {
-      setError(
-        err instanceof Error ? err : new Error("Failed to disconnect wallet"),
-      );
-      throw err;
+      const error =
+        err instanceof Error ? err : new Error("Failed to disconnect wallet");
+      store.setError(error);
+      throw error;
     }
-  }, [chain, wallet, setWallet, setIsConnected, setError, getWalletAdapter]);
+  }, [store.chain, store.wallet]);
 
   const switchChain = useCallback(
     async (newChain: SupportedChain) => {
-      if (!wallet) {
-        setChain(newChain);
+      if (!store.wallet) {
+        store.setChain(newChain);
         return;
       }
 
       try {
-        const adapter = getWalletAdapter(newChain);
+        const adapter = sdk.getAdapter(newChain.type);
         await adapter.switchChain(newChain);
 
-        setChain(newChain);
+        store.setChain(newChain);
       } catch (err) {
-        setError(
-          err instanceof Error ? err : new Error("Failed to switch chain"),
-        );
-        throw err;
+        const error =
+          err instanceof Error ? err : new Error("Failed to switch chain");
+        store.setError(error);
+        throw error;
       }
     },
-    [wallet, setChain, setError, getWalletAdapter],
+    [store.wallet],
   );
 
   return useMemo(
     () => ({
-      wallet,
-      chain,
-      isConnecting,
-      isConnected,
-      error,
+      ...store,
       connect,
       disconnect,
-      openWalletDialog: openDialog,
-      closeWalletDialog: closeDialog,
       switchChain,
     }),
-    [
-      wallet,
-      chain,
-      isConnecting,
-      isConnected,
-      error,
-      connect,
-      disconnect,
-      openDialog,
-      closeDialog,
-      switchChain,
-    ],
+    [store, connect, disconnect, switchChain],
   );
 }

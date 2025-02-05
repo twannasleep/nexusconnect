@@ -3,9 +3,9 @@ import { type SupportedChain, isEVMChain } from "../../types/chains";
 import { type Wallet, type SupportedChainType } from "../../types/wallets";
 import { Dialog } from "./Dialog";
 import { useWallet } from "../../core/hooks/useWallet";
-import { Fragment, useState, useEffect } from "react";
+import { Fragment, useState, useEffect, memo } from "react";
 import { defaultEVMChains, defaultSolanaChains } from "../../config/chains";
-import { useWalletDialogStore } from "../../core/store/useWalletDialogStore";
+import { useWalletStore } from "../../core/store/useWalletStore";
 
 export interface WalletDialogProps {
   open: boolean;
@@ -18,6 +18,19 @@ interface WalletOption {
   name: string;
   icon: string;
   supportedChainTypes: SupportedChainType[];
+}
+
+interface WalletOptionProps {
+  wallet: WalletOption;
+  onSelect: (wallet: WalletOption) => void;
+  isLoading: boolean;
+}
+
+interface WalletListProps {
+  wallets: Record<"evm" | "solana", WalletOption[]>;
+  chainType: "evm" | "solana";
+  onSelect: (wallet: WalletOption) => void;
+  isLoading: boolean;
 }
 
 const MOCK_WALLETS: Record<"evm" | "solana", WalletOption[]> = {
@@ -51,13 +64,41 @@ const MOCK_WALLETS: Record<"evm" | "solana", WalletOption[]> = {
   ],
 };
 
+const WalletOption = memo(
+  ({ wallet, onSelect, isLoading }: WalletOptionProps) => (
+    <button
+      onClick={() => onSelect(wallet)}
+      disabled={isLoading}
+      className="flex w-full items-center gap-3 rounded-lg border p-3 hover:bg-gray-50 disabled:opacity-50"
+    >
+      <img src={wallet.icon} alt={wallet.name} className="h-8 w-8" />
+      <span className="font-medium">{wallet.name}</span>
+    </button>
+  ),
+);
+
+const WalletList = memo(
+  ({ wallets, chainType, onSelect, isLoading }: WalletListProps) => (
+    <div className="space-y-3">
+      {wallets[chainType].map((wallet) => (
+        <WalletOption
+          key={wallet.id}
+          wallet={wallet}
+          onSelect={onSelect}
+          isLoading={isLoading}
+        />
+      ))}
+    </div>
+  ),
+);
+
 export function WalletDialog({
   open,
   onOpenChange,
   pendingChain,
 }: WalletDialogProps) {
   const { connect, switchChain, isConnecting, error } = useWallet();
-  const { setPendingChain } = useWalletDialogStore();
+  const { setPendingChain } = useWalletStore();
   const [selectedTab, setSelectedTab] = useState(
     pendingChain && isEVMChain(pendingChain) ? 0 : 1,
   );
@@ -155,38 +196,20 @@ export function WalletDialog({
           </Tab.List>
           <Tab.Panels className="mt-4">
             <Tab.Panel className="space-y-3">
-              {MOCK_WALLETS.evm.map((wallet) => (
-                <button
-                  key={wallet.id}
-                  onClick={() => handleWalletSelect(wallet)}
-                  disabled={isConnecting}
-                  className="flex w-full items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  <img
-                    src={wallet.icon}
-                    alt={wallet.name}
-                    className="h-8 w-8"
-                  />
-                  <span className="font-medium">{wallet.name}</span>
-                </button>
-              ))}
+              <WalletList
+                wallets={MOCK_WALLETS}
+                chainType="evm"
+                onSelect={handleWalletSelect}
+                isLoading={isConnecting}
+              />
             </Tab.Panel>
             <Tab.Panel className="space-y-3">
-              {MOCK_WALLETS.solana.map((wallet) => (
-                <button
-                  key={wallet.id}
-                  onClick={() => handleWalletSelect(wallet)}
-                  disabled={isConnecting}
-                  className="flex w-full items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                >
-                  <img
-                    src={wallet.icon}
-                    alt={wallet.name}
-                    className="h-8 w-8"
-                  />
-                  <span className="font-medium">{wallet.name}</span>
-                </button>
-              ))}
+              <WalletList
+                wallets={MOCK_WALLETS}
+                chainType="solana"
+                onSelect={handleWalletSelect}
+                isLoading={isConnecting}
+              />
             </Tab.Panel>
           </Tab.Panels>
         </Tab.Group>
